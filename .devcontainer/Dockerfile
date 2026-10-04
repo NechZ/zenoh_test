@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
-WORKDIR /workspaces/my-zenoh-robot
+WORKDIR /workspaces/zenoh_test
 
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 RUN echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> /root/.bashrc

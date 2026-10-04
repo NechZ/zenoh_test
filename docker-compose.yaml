@@ -4,14 +4,14 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile
 
-    container_name: tum_test
+    container_name: zenoh_test
 
     network_mode: host
 
     volumes:
-      - .:/workspaces/tum_test
+      - .:/workspaces/zenoh_test
 
-    working_dir: /workspaces/tum_test
+    working_dir: /workspaces/zenoh_test
 
     stdin_open: true
     tty: true

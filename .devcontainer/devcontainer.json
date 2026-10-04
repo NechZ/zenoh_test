@@ -2,7 +2,7 @@
     "name": "ROS 2 Jazzy + Zenoh",
     "dockerComposeFile": "../docker-compose.yml",
     "service": "ros2",
-    "workspaceFolder": "/workspaces/tum_test",
+    "workspaceFolder": "/workspaces/zenoh_test",
 
     "customizations": {
         "vscode": {
