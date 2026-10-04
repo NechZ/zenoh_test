@@ -1,0 +1,19 @@
+services:
+  ros2:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+
+    container_name: tum_test
+
+    network_mode: host
+
+    volumes:
+      - .:/workspaces/tum_test
+
+    working_dir: /workspaces/tum_test
+
+    stdin_open: true
+    tty: true
+
+    command: /bin/bash
