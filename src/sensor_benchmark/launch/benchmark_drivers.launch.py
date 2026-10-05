@@ -12,6 +12,7 @@ Arguments:
   metadata   path         Ouster metadata JSON matching that pcap
   bag_dir    path         where bags are written                          (default /workspaces/zenoh_test/bags)
   packet_qos_depth  int   queue depth of the lidar packet topic             (default 512; 10 reproduces the flicker)
+  timestamp_mode   str    ouster timestamp mode: TIME_FROM_ROS_TIME (default), TIME_FROM_INTERNAL_OSC, TIME_FROM_PTP_1588
 
 Environment: BENCH_DATA_DIR overrides the default data directory (/workspaces/zenoh_test/data).
 """
@@ -60,7 +61,7 @@ def generate_launch_description():
         name='os_cloud',
         namespace='/ouster',
         parameters=[{
-            'timestamp_mode': 'TIME_FROM_ROS_TIME',
+            'timestamp_mode': LaunchConfiguration('timestamp_mode'),
             'sensor_frame': 'os_sensor',
             'lidar_frame': 'os_lidar',
             'imu_frame': 'os_imu',
@@ -147,6 +148,8 @@ def generate_launch_description():
         DeclareLaunchArgument('pcap', default_value=DEFAULT_PCAP, description='Ouster pcap to replay'),
         DeclareLaunchArgument('metadata', default_value=DEFAULT_METADATA,
                               description='Ouster metadata JSON that matches the pcap'),
+        DeclareLaunchArgument('timestamp_mode', default_value='TIME_FROM_ROS_TIME',
+                              description='Ouster timestamp mode (TIME_FROM_ROS_TIME, TIME_FROM_INTERNAL_OSC, TIME_FROM_PTP_1588)'),
         DeclareLaunchArgument('packet_qos_depth', default_value='512',
                               description='Queue depth of the lidar packet topic (10 = default, drops packets)'),
         DeclareLaunchArgument('bag_dir', default_value='/workspaces/zenoh_test/bags',

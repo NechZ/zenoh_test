@@ -26,36 +26,35 @@ clone_pinned() {  # url branch commit dir
   fi
 }
 
-# Each repo gets a base patch (our changes) and optionally a trace patch (latency instrumentation, off unless
-# BENCH_TRACE=1) that builds on top of it. State detection looks at the trace patch first, because once it is
-# applied the base patch no longer reverse-applies cleanly.
-apply_patches() {  # repo base_patch [trace_patch]
-  local repo=$1 base=$2 trace=${3:-}
-  if [ -n "$trace" ] && git -C "$repo" apply --reverse --check "$trace" >/dev/null 2>&1; then
-    echo "[setup] $(basename "$base") + $(basename "$trace"): already applied"
-    return 0
-  fi
-  if git -C "$repo" apply --reverse --check "$base" >/dev/null 2>&1; then
-    echo "[setup] $(basename "$base"): already applied"
-  elif git -C "$repo" apply --check "$base" >/dev/null 2>&1; then
-    git -C "$repo" apply "$base"
-    echo "[setup] $(basename "$base"): applied"
-  else
-    echo "[setup] ERROR: $(basename "$base") neither applies nor is already applied in $repo" >&2
-    echo "        (the checkout is probably not at the pinned commit)" >&2
-    return 1
-  fi
-  if [ -n "$trace" ]; then
-    git -C "$repo" apply "$trace"
-    echo "[setup] $(basename "$trace"): applied"
-  fi
+# Each repo gets an ORDERED list of patches that build on one another (base changes, then optional latency
+# tracing, then fixes). Later patches overlap earlier ones, so once a later patch is applied the earlier ones no
+# longer reverse-apply cleanly. State detection therefore finds the LAST patch that reverse-applies (that patch and
+# everything before it are in the tree) and applies the ones after it, in order.
+apply_patches() {  # repo patch1 [patch2 ...]
+  local repo=$1; shift
+  local patches=("$@") n=$# last=-1 i
+  for ((i = n - 1; i >= 0; i--)); do
+    if git -C "$repo" apply --reverse --check "${patches[i]}" >/dev/null 2>&1; then last=$i; break; fi
+  done
+  for ((i = 0; i <= last; i++)); do echo "[setup] $(basename "${patches[i]}"): already applied"; done
+  for ((i = last + 1; i < n; i++)); do
+    if git -C "$repo" apply --check "${patches[i]}" >/dev/null 2>&1; then
+      git -C "$repo" apply "${patches[i]}"
+      echo "[setup] $(basename "${patches[i]}"): applied"
+    else
+      echo "[setup] ERROR: $(basename "${patches[i]}") does not apply in $repo" >&2
+      echo "        (the checkout is probably not at the pinned commit, or an earlier patch is missing)" >&2
+      return 1
+    fi
+  done
 }
 
 clone_pinned "$OUSTER_URL" "$OUSTER_BRANCH" "$OUSTER_COMMIT" "$ROOT/src/ouster-ros"
 git -C "$ROOT/src/ouster-ros" submodule update --init --recursive
 clone_pinned "$PYLON_URL" "$PYLON_BRANCH" "$PYLON_COMMIT" "$ROOT/src/pylon-ros-camera"
 
-apply_patches "$ROOT/src/ouster-ros"                       "$ROOT/patches/ouster-ros.patch" "$ROOT/patches/latency-trace-ouster-ros.patch"
-apply_patches "$ROOT/src/ouster-ros/ouster-ros/ouster-sdk" "$ROOT/patches/ouster-sdk.patch"
-apply_patches "$ROOT/src/pylon-ros-camera"                 "$ROOT/patches/pylon-ros-camera.patch" "$ROOT/patches/latency-trace-pylon-ros-camera.patch"
+P="$ROOT/patches"
+apply_patches "$ROOT/src/ouster-ros" "$P/ouster-ros.patch" "$P/latency-trace-ouster-ros.patch" "$P/ouster-ros-stamp-fix.patch"
+apply_patches "$ROOT/src/ouster-ros/ouster-ros/ouster-sdk" "$P/ouster-sdk.patch"
+apply_patches "$ROOT/src/pylon-ros-camera" "$P/pylon-ros-camera.patch" "$P/latency-trace-pylon-ros-camera.patch"
 echo "[setup] sources ready"

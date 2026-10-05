@@ -1,0 +1,17 @@
+--- a/ouster-ros/src/lidar_packet_handler.h
++++ b/ouster-ros/src/lidar_packet_handler.h
+@@ -366,9 +366,11 @@
+         if (!(*scan_batcher)(lidar_packet, lidar_scan)) return false;
+         lidar_scan_estimated_ts = compute_scan_ts(lidar_scan.timestamp());
+         lidar_scan_estimated_msg_ts = lidar_handler_ros_time_frame_ts.value();
+-        // set time for next point cloud msg
+-        lidar_handler_ros_time_frame_ts = extrapolate_frame_ts(
+-            pf, lidar_packet.buf.data(), packet_receive_time);
++        // The packet that completes a scan is not necessarily the first packet of the next one (the SDK's
++        // ScanBatcher completes a scan on its LAST packet), so deriving the next stamp from it makes every
++        // cloud ~one scan period early. Clear it instead: the next packet, which belongs to the next scan,
++        // sets it above (extrapolate_frame_ts works from any packet via its column index).
++        lidar_handler_ros_time_frame_ts.reset();
+         return true;
+     }
+ 

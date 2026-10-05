@@ -72,8 +72,11 @@ Reference result on one laptop (single runs, see the report for caveats):
 | Scan complete → cloud published (ms) | 31 | 22 | 30.5 | 3.6 |
 
 **Do not compare the printed ROS `latency` columns with the pure-Zenoh ones.** The ROS driver stamps clouds about
-one scan period (99 ms) early and cameras ~12 ms early (taken before the blocking grab), so the probe reports
-~250 ms (cloud) and ~15 ms (camera) for ROS against ~113 ms and ~0.6 ms for the pure app. Use benchmark 5 for a
+one scan period (99 ms) early and cameras ~12 ms early (taken before the blocking grab), so the probe reported
+~250 ms (cloud) and ~15 ms (camera) for ROS against ~113 ms and ~0.6 ms for the pure app. Those table values were
+measured **before** `patches/ouster-ros-stamp-fix.patch`, which `scripts/setup_sources.sh` now applies by default: with it
+the ROS cloud stamp is correct and the probe's cloud latency drops by ~99 ms. The camera stamp is still taken before the
+blocking grab. Use benchmark 5 for a
 real stage breakdown. The pure app prints the stage time as `STAGE cloud build+publish`.
 
 ## 4. Reproduce the flicker and the queue-depth fix
@@ -106,10 +109,14 @@ BENCH_TRACE=1 ros2 launch sensor_benchmark benchmark_drivers.launch.py record:=f
 benchmarks/pipeline/latency_trace.py /tmp/trace.log
 ```
 
+Try the other Ouster timestamp modes with `timestamp_mode:=TIME_FROM_INTERNAL_OSC` (or `TIME_FROM_PTP_1588`). In a
+replay the stamps then come from the recorded sensor clock, so `stamp_offset` is a huge constant-ish number; only a live
+sensor with synchronised clocks gives a meaningful absolute value.
+
 For the loaded case use `record:=true` and start two `probe_ros.py 30 cloud` readers (see 4), optionally after
 `source scripts/zenoh_env.sh shm`. The script prints median / p95 / max per stage:
 
-- **Cloud**: `stamp_offset` (message stamp vs the real first packet; expect ~99 ms early), `assembly` (the sensor
+- **Cloud**: `stamp_offset` (message stamp vs the real first packet; about −0.8 ms with the stamp fix, ~+99 ms without it), `assembly` (the sensor
   sweep, ~110 ms), `queue`, `process` (building the clouds), `publish`, `consume`, and the totals
   `since_stamp` (what the probes report), `since_first_pkt`, `since_complete` (what a consumer waits after the scan
   is done).
@@ -120,6 +127,9 @@ For the loaded case use `record:=true` and start two `probe_ros.py 30 cloud` rea
 
 For the pure-Zenoh side the matching number is the `STAGE` line printed by `run_pipeline_compare.sh pure_net
 pure_shm` (dequeue → both returns built and published).
+
+Note: the pcap replay runs at about 91% of real time (scans every ~109.5 ms, ~9.1 Hz), for the ROS node and the pure
+app alike.
 
 ## How the numbers are measured
 
