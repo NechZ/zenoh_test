@@ -1,0 +1,119 @@
+diff --git a/ouster-ros/src/os_cloud_node.cpp b/ouster-ros/src/os_cloud_node.cpp
+index eb9219b..d865004 100644
+--- a/ouster-ros/src/os_cloud_node.cpp
++++ b/ouster-ros/src/os_cloud_node.cpp
+@@ -60,6 +60,7 @@ class OusterCloud : public OusterProcessingNodeBase {
+         declare_parameter("ptp_utc_tai_offset", -37.0);
+         declare_parameter("proc_mask", "IMU|PCL|SCAN");
+         declare_parameter("use_system_default_qos", false);
++        declare_parameter("packet_qos_depth", 0);  // 0 = keep default depth
+         declare_parameter("scan_ring", 0);
+         declare_parameter("point_type", "original");
+         declare_parameter("organized", true);
+@@ -69,6 +70,7 @@ class OusterCloud : public OusterProcessingNodeBase {
+         declare_parameter("v_reduction", 1);
+         declare_parameter("min_scan_valid_columns_ratio", 0.0);
+         declare_parameter("mask_path", "");
++        declare_parameter("num_returns_override", 0);
+     }
+ 
+     void metadata_handler(
+@@ -96,6 +98,12 @@ class OusterCloud : public OusterProcessingNodeBase {
+         auto selected_qos =
+             use_system_default_qos ? system_default_qos : sensor_data_qos;
+ 
++        // lidar packets arrive at ~1.3 kHz; a deeper queue absorbs short stalls
++        // without dropping packets (which shows up as missing scan columns)
++        auto packet_qos = selected_qos;
++        int packet_qos_depth = get_parameter("packet_qos_depth").as_int();
++        if (packet_qos_depth > 0) packet_qos.keep_last(packet_qos_depth);
++
+         auto proc_mask = get_parameter("proc_mask").as_string();
+         auto tokens = impl::parse_tokens(proc_mask, '|');
+ 
+@@ -130,6 +138,15 @@ class OusterCloud : public OusterProcessingNodeBase {
+         }
+ 
+         int num_returns = info.num_returns();
++        {
++            int override_val = get_parameter("num_returns_override").as_int();
++            if (override_val > 0 && override_val < num_returns) {
++                RCLCPP_INFO(get_logger(),
++                    "OusterCloud: overriding num_returns from %d to %d",
++                    num_returns, override_val);
++                num_returns = override_val;
++            }
++        }
+ 
+         std::vector<LidarScanProcessor> processors;
+ 
+@@ -173,7 +190,7 @@ class OusterCloud : public OusterProcessingNodeBase {
+                     tf_bcast.apply_lidar_to_sensor_transform(),
+                     organized, destagger, min_range, max_range, v_reduction, mask_path,
+                     [this](PointCloudProcessor_OutputType msgs) {
+-                        for (size_t i = 0; i < msgs.size(); ++i)
++                        for (size_t i = 0; i < std::min(msgs.size(), lidar_pubs.size()); ++i)
+                             lidar_pubs[i]->publish(std::move(msgs[i]));
+                     }
+                 )
+@@ -210,7 +227,7 @@ class OusterCloud : public OusterProcessingNodeBase {
+             processors.push_back(LaserScanProcessor::create(
+                 info, tf_bcast.lidar_frame_id(), scan_ring,
+                 [this](LaserScanProcessor::OutputType msgs) {
+-                    for (size_t i = 0; i < msgs.size(); ++i) scan_pubs[i]->publish(*msgs[i]);
++                    for (size_t i = 0; i < std::min(msgs.size(), scan_pubs.size()); ++i) scan_pubs[i]->publish(*msgs[i]);
+                 }));
+         }
+ 
+@@ -234,7 +251,7 @@ class OusterCloud : public OusterProcessingNodeBase {
+             impl::check_token(tokens, "SCAN") ||
+             impl::check_token(tokens, "TLM")) {
+             lidar_packet_sub = create_subscription<PacketMsg>(
+-                "lidar_packets", selected_qos,
++                "lidar_packets", packet_qos,
+                 [this](const PacketMsg::ConstSharedPtr msg) {
+                     // TODO[UN]: this is not ideal since we can't reuse the msg buffer
+                     // Need to redefine the Packet object and allow use of array_views
+diff --git a/ouster-ros/src/os_pcap_node.cpp b/ouster-ros/src/os_pcap_node.cpp
+index c2e5ee2..e9960a3 100644
+--- a/ouster-ros/src/os_pcap_node.cpp
++++ b/ouster-ros/src/os_pcap_node.cpp
+@@ -48,7 +48,7 @@ class OusterPcap : public OusterSensorNodeBase {
+             auto request_transitions = std::vector<uint8_t>{
+                 lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE,
+                 lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE};
+-            execute_transitions_sequence(request_transitions, 0);
++            this->trigger_transition(rclcpp_lifecycle::Transition(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE)); this->trigger_transition(rclcpp_lifecycle::Transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE));
+             RCLCPP_INFO(get_logger(), "auto start initiated");
+         }
+     }
+@@ -89,7 +89,7 @@ class OusterPcap : public OusterSensorNodeBase {
+ 
+     LifecycleNodeInterface::CallbackReturn on_activate(
+         const rclcpp_lifecycle::State& state) {
+-        RCLCPP_DEBUG(get_logger(), "on_activate() is called.");
++        RCLCPP_INFO(get_logger(), "on_activate() is called.");
+         LifecycleNode::on_activate(state);
+         create_publishers();
+         allocate_buffers();
+@@ -152,6 +152,7 @@ class OusterPcap : public OusterSensorNodeBase {
+         declare_parameter<std::string>("metadata");
+         declare_parameter<std::string>("pcap_file");
+         declare_parameter("loop", false);
++        declare_parameter("packet_qos_depth", 0);  // 0 = keep default depth
+         declare_parameter("progress_update_freq", 1.0);
+         declare_parameter("use_system_default_qos", false);
+     }
+@@ -202,8 +203,11 @@ class OusterPcap : public OusterSensorNodeBase {
+         rclcpp::QoS sensor_data_qos = rclcpp::SensorDataQoS();
+         auto selected_qos =
+             use_system_default_qos ? system_default_qos : sensor_data_qos;
++        auto packet_qos = selected_qos;
++        int packet_qos_depth = get_parameter("packet_qos_depth").as_int();
++        if (packet_qos_depth > 0) packet_qos.keep_last(packet_qos_depth);
+         lidar_packet_pub =
+-            create_publisher<PacketMsg>("lidar_packets", selected_qos);
++            create_publisher<PacketMsg>("lidar_packets", packet_qos);
+         imu_packet_pub = create_publisher<PacketMsg>("imu_packets", selected_qos);
+     }
+ 

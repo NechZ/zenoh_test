@@ -1,0 +1,28 @@
+diff --git a/ouster_client/src/lidar_scan.cpp b/ouster_client/src/lidar_scan.cpp
+index 2379960..beb3cbb 100644
+--- a/ouster_client/src/lidar_scan.cpp
++++ b/ouster_client/src/lidar_scan.cpp
+@@ -1474,7 +1474,7 @@ bool ScanBatcher::operator()(const Packet& packet, LidarScan& lidar_scan) {
+             // drop duplicate or packets from previous frame
+             if (finished_scan_id_ == f_id) {
+                 // drop old duplicate packets
+-                return false;
++                finished_scan_id_ = -1; // HACK: allow looping single frame 
+             } else if (finished_scan_id_ ==
+                        ((f_id + 1) %
+                         (static_cast<int64_t>(pf.max_frame_id) + 1))) {
+diff --git a/tests/metadata/2_0_0_os1-991913000010-64.json b/tests/metadata/2_0_0_os1-991913000010-64.json
+index 0a9576d..1eeae77 100644
+--- a/tests/metadata/2_0_0_os1-991913000010-64.json
++++ b/tests/metadata/2_0_0_os1-991913000010-64.json
+@@ -164,8 +164,8 @@
+         "timestamp_mode": "TIME_FROM_INTERNAL_OSC",
+         "udp_dest": "169.254.91.92",
+         "udp_ip": "169.254.91.92",
+-        "udp_port_imu": 55824,
+-        "udp_port_lidar": 55426
++        "udp_port_imu": 7503,
++        "udp_port_lidar": 7502
+     },
+     "imu_intrinsics": 
+     {

@@ -1,21 +1,30 @@
-# ROS 2 / colcon
+# colcon build products
 build/
 install/
 log/
+logs/
 
-# Python
-__pycache__/
-*.pyc
-
-# VS Code
-.vscode/
-
-# ROS bags
+# recordings
+bags/
 *.db3
 *.mcap
+*.mcap.zstd
 
-# Docker
-*.log
+# test data: large, fetched separately (see data/README.md)
+data/*
+!data/README.md
 
-# OS
+# vendor installers (see third_party/pylon/README.md)
+third_party/pylon/*.deb
+third_party/pylon/*.tar.gz
+
+# upstream clones created by scripts/setup_sources.sh (changes live in patches/)
+src/ouster-ros/
+src/pylon-ros-camera/
+
+# Python / editor / OS
+__pycache__/
+*.pyc
+.vscode/
+.claude/settings.local.json
 .DS_Store

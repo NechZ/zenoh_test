@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>sensor_benchmark</name>
+  <version>0.1.0</version>
+  <description>ROS 2 launch + consumer for the Ouster / Basler transport benchmarks.</description>
+  <maintainer email="dev@example.com">Benchmark maintainers</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>sensor_msgs</depend>
+  <exec_depend>ouster_ros</exec_depend>
+  <exec_depend>pylon_ros2_camera_component</exec_depend>
+  <exec_depend>rosbag2_transport</exec_depend>
+  <exec_depend>rosbag2_storage_mcap</exec_depend>
+  <exec_depend>rosbag2_compression_zstd</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
