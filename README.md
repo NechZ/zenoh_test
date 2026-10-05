@@ -7,6 +7,7 @@ pcap and the cameras are Basler's built-in emulator.
 
 **What we learned** is written up in [docs/transport-ipc-report.md](docs/transport-ipc-report.md) (start there).
 **How to run each benchmark** is in [benchmarks/README.md](benchmarks/README.md).
+**Working on the repo?** Read [AGENTS.md](AGENTS.md) first.
 
 ## Quick start
 
@@ -54,7 +55,8 @@ benchmarks/
   pipeline/              full sensor pipeline: ROS drivers vs a pure-Zenoh app on the Ouster/Pylon SDKs
 data/                    pcap + metadata (not in git)
 third_party/pylon/       pylon installers (not in git)
-docs/                    the write-up
+docs/                    the write-up (transport-ipc-report.md) and the raw measurements behind it
+AGENTS.md                hand-off: project knowledge, traps, and the testing / reporting method
 ```
 
 ## Things that commonly go wrong

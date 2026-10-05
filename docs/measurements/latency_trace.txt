@@ -1,0 +1,87 @@
+################ idle  (recorder=false, SHM net, cross-process readers=0)
+parsed: {'ouster': 455, 'pcap': 457, 'cam': 997, 'consumer': 1452}
+CLOUD  (454 scans matched)
+  stamp_offset   median   -0.82   p95   -0.68   max   -0.02 ms  
+  assembly       median  109.29   p95  121.48   max  127.03 ms  
+  queue          median    0.09   p95    0.19   max   35.86 ms  
+  process        median   13.95   p95   15.00   max   18.22 ms  
+  publish        median    0.02   p95    0.04   max    0.06 ms  
+  consume        median    0.04   p95    0.19   max   42.32 ms  
+  -- totals
+  since_stamp    median  122.02   p95  131.29   max  140.27 ms  <- what the benchmark probes reported
+  since_first_pkt median  122.87   p95  132.11   max  141.17 ms  <- true scan-start to consumer
+  since_complete median   14.13   p95   15.37   max   65.26 ms  <- what a consumer waits after the scan is done
+CAMERA my_camera  (499 frames matched)
+  wait           median   11.90   p95   12.35   max   13.11 ms  
+  copy           median    0.19   p95    0.26   max    1.27 ms  
+  rest           median    0.20   p95    0.25   max    1.07 ms  
+  consume        median    0.04   p95    0.21   max    0.89 ms  
+  -- totals
+  since_stamp    median   12.34   p95   12.95   max   14.88 ms  <- what the benchmark probes reported
+  since_retrieved median    0.45   p95    0.70   max    2.35 ms  <- true frame-available to consumer
+CAMERA my_camera_2  (498 frames matched)
+  wait           median   11.94   p95   12.33   max   13.13 ms  
+  copy           median    0.17   p95    0.25   max    1.38 ms  
+  rest           median    0.17   p95    0.24   max    0.92 ms  
+  consume        median    0.04   p95    0.21   max    0.94 ms  
+  -- totals
+  since_stamp    median   12.37   p95   12.89   max   14.26 ms  <- what the benchmark probes reported
+  since_retrieved median    0.44   p95    0.64   max    2.34 ms  <- true frame-available to consumer
+################ load_net  (recorder=true, SHM net, cross-process readers=2)
+parsed: {'ouster': 455, 'pcap': 456, 'cam': 1005, 'consumer': 1457}
+CLOUD  (455 scans matched)
+  stamp_offset   median   -0.84   p95   -0.68   max   -0.02 ms  
+  assembly       median  110.61   p95  119.19   max  287.28 ms  
+  queue          median    0.09   p95    0.17   max   43.03 ms  
+  process        median   15.30   p95   18.63   max   19.56 ms  
+  publish        median   14.18   p95   19.59   max   30.05 ms  
+  consume        median  -10.00   p95   -3.78   max   49.62 ms  
+  -- totals
+  since_stamp    median  130.90   p95  136.44   max  141.52 ms  <- what the benchmark probes reported
+  since_first_pkt median  131.79   p95  137.71   max  334.56 ms  <- true scan-start to consumer
+  since_complete median   19.66   p95   23.84   max   93.99 ms  <- what a consumer waits after the scan is done
+CAMERA my_camera  (501 frames matched)
+  wait           median   11.90   p95   12.35   max   13.17 ms  
+  copy           median    0.21   p95    0.38   max    0.81 ms  
+  rest           median    0.51   p95    0.96   max    2.36 ms  
+  consume        median   -0.12   p95   11.00   max   24.57 ms  
+  -- totals
+  since_stamp    median   12.50   p95   23.84   max   37.21 ms  <- what the benchmark probes reported
+  since_retrieved median    0.60   p95   11.77   max   25.37 ms  <- true frame-available to consumer
+CAMERA my_camera_2  (501 frames matched)
+  wait           median   11.90   p95   12.41   max   13.44 ms  
+  copy           median    0.21   p95    0.41   max    1.24 ms  
+  rest           median    0.52   p95    1.13   max    2.75 ms  
+  consume        median   -0.12   p95   10.66   max   28.01 ms  
+  -- totals
+  since_stamp    median   12.53   p95   23.12   max   40.58 ms  <- what the benchmark probes reported
+  since_retrieved median    0.61   p95   11.41   max   28.93 ms  <- true frame-available to consumer
+################ load_shm  (recorder=true, SHM shm, cross-process readers=2)
+parsed: {'ouster': 456, 'pcap': 457, 'cam': 1001, 'consumer': 1453}
+CLOUD  (455 scans matched)
+  stamp_offset   median   -0.84   p95   -0.70   max   -0.02 ms  
+  assembly       median  109.75   p95  116.45   max  288.63 ms  
+  queue          median    0.11   p95    0.16   max   17.76 ms  
+  process        median   14.65   p95   17.68   max   20.04 ms  
+  publish        median    6.26   p95    7.20   max    7.97 ms  
+  consume        median   -2.15   p95   -1.86   max   22.05 ms  
+  -- totals
+  since_stamp    median  129.15   p95  134.74   max  140.90 ms  <- what the benchmark probes reported
+  since_first_pkt median  130.00   p95  135.71   max  331.15 ms  <- true scan-start to consumer
+  since_complete median   18.79   p95   22.66   max   50.71 ms  <- what a consumer waits after the scan is done
+CAMERA my_camera  (499 frames matched)
+  wait           median   11.94   p95   12.44   max   13.40 ms  
+  copy           median    0.21   p95    0.38   max    0.69 ms  
+  rest           median    0.51   p95    1.15   max    2.27 ms  
+  consume        median   -0.14   p95    8.35   max   21.47 ms  
+  -- totals
+  since_stamp    median   12.53   p95   21.37   max   34.61 ms  <- what the benchmark probes reported
+  since_retrieved median    0.57   p95    9.35   max   22.54 ms  <- true frame-available to consumer
+CAMERA my_camera_2  (499 frames matched)
+  wait           median   11.88   p95   12.34   max   13.16 ms  
+  copy           median    0.21   p95    0.37   max    1.02 ms  
+  rest           median    0.52   p95    1.13   max    1.59 ms  
+  consume        median   -0.15   p95    7.93   max   20.31 ms  
+  -- totals
+  since_stamp    median   12.48   p95   21.09   max   33.20 ms  <- what the benchmark probes reported
+  since_retrieved median    0.58   p95    9.34   max   21.28 ms  <- true frame-available to consumer

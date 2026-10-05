@@ -1,0 +1,17 @@
+depth=sensor shm=net cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=160.2 p99=170.4 | cols_present<99.5%: 270/270 (min 0.742)
+    [pkg temp 65C -> 73C]
+benchmarks/pipeline/run_flicker.sh: line 31:   379 Segmentation fault      (core dumped) python3 "$ROOT/benchmarks/pipeline/probe_ros.py" 30 cloud > /tmp/fl_p1.txt 2>&1
+depth=sensor shm=net cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=163.2 p99=176.1 | cols_present<99.5%: 270/270 (min 0.742)
+    [pkg temp 58C -> 72C]
+depth=sensor shm=shm cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=148.6 p99=167.2 | cols_present<99.5%: 270/270 (min 0.852)
+    [pkg temp 57C -> 68C]
+depth=0    shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=151.6 p99=177.3 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 57C -> 68C]
+depth=0    shm=net cloud        n=269 (8.9 Hz) | stamp gaps: <50ms=0, 50-150ms=268, >=150ms=0 | latency ms p50=150.0 p99=179.8 | cols_present<99.5%: 0/269 (min 1.000)
+    [pkg temp 63C -> 73C]
+depth=0    shm=net cloud        n=272 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=150.2 p99=167.2 | cols_present<99.5%: 0/272 (min 1.000)
+    [pkg temp 57C -> 70C]
+depth=0    shm=shm cloud        n=272 (9.1 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=144.6 p99=158.4 | cols_present<99.5%: 0/272 (min 1.000)
+    [pkg temp 57C -> 71C]
+depth=0    shm=shm cloud        n=272 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=145.8 p99=159.8 | cols_present<99.5%: 0/272 (min 1.000)
+    [pkg temp 56C -> 76C]

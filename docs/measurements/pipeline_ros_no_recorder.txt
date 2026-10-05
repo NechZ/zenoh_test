@@ -1,0 +1,14 @@
+=== ROS 2 rmw_zenoh, SHM off, recorder false: ouster_ros + pylon + consumer node in one container
+pipeline process (all nodes + recorder if enabled):
+  pid 1871: 0.58 cores of CPU, RSS 290 MB
+CONSUMER cam0         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=15.4 p99=38.2
+CONSUMER cam1         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=16.8 p99=40.5
+CONSUMER cloud        n=225 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=224, >=150ms=0 | latency ms p50=156.5 p99=170.7 | cols_present<99.5%: 0/225 (min 1.000)
+  [pkg temp 62C -> 60C]
+=== ROS 2 rmw_zenoh, SHM on, recorder false: ouster_ros + pylon + consumer node in one container
+pipeline process (all nodes + recorder if enabled):
+  pid 2071: 0.42 cores of CPU, RSS 1314 MB
+CONSUMER cam0         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=13.8 p99=33.4
+CONSUMER cam1         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=15.2 p99=31.8
+CONSUMER cloud        n=227 (9.1 Hz) | stamp gaps: <50ms=0, 50-150ms=226, >=150ms=0 | latency ms p50=142.7 p99=156.7 | cols_present<99.5%: 0/227 (min 1.000)
+  [pkg temp 56C -> 60C]

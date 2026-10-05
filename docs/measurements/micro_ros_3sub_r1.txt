@@ -1,0 +1,12 @@
+=== ROS rmw_zenoh, SHM off, 3 subscriber process(es), 12 MB @ 10 Hz
+PUB sent=100 msg=12.0MB cpu=23.4% of one core
+[shm_pub]: can_loan PointCloud2=0  Float64(fixed-size)=0
+SUB n=100 latency ms: p50=26.9 p99=38.6 max=38.6 | cpu=14.2% of one core
+SUB n=100 latency ms: p50=20.5 p99=32.2 max=32.2 | cpu=13.8% of one core
+SUB n=100 latency ms: p50=30.0 p99=42.0 max=42.0 | cpu=14.7% of one core
+=== ROS rmw_zenoh, SHM on, 3 subscriber process(es), 12 MB @ 10 Hz
+PUB sent=100 msg=12.0MB cpu=4.2% of one core
+[shm_pub]: can_loan PointCloud2=0  Float64(fixed-size)=0
+SUB n=100 latency ms: p50=18.5 p99=34.2 max=34.2 | cpu=12.0% of one core
+SUB n=100 latency ms: p50=18.0 p99=56.0 max=56.0 | cpu=11.8% of one core
+SUB n=100 latency ms: p50=20.2 p99=42.8 max=42.8 | cpu=12.5% of one core

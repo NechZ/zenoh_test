@@ -1,0 +1,22 @@
+depth=0    shm=net cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=146.8 p99=172.0 | cols_present<99.5%: 0/270 (min 1.000)
+    [pkg temp 65C -> 70C]
+depth=10   shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=145.2 p99=167.5 | cols_present<99.5%: 221/271 (min 0.828)
+    [pkg temp 55C -> 72C]
+depth=32   shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=149.4 p99=172.1 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 63C -> 74C]
+depth=64   shm=net cloud        n=269 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=268, >=150ms=0 | latency ms p50=154.1 p99=172.8 | cols_present<99.5%: 0/269 (min 1.000)
+    [pkg temp 56C -> 69C]
+depth=128  shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=144.9 p99=158.2 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 101C -> 71C]
+depth=256  shm=net cloud        n=269 (8.9 Hz) | stamp gaps: <50ms=0, 50-150ms=268, >=150ms=0 | latency ms p50=152.4 p99=172.4 | cols_present<99.5%: 0/269 (min 1.000)
+    [pkg temp 57C -> 66C]
+depth=512  shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=154.6 p99=175.2 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 56C -> 68C]
+depth=0    shm=shm cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=145.3 p99=155.2 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 56C -> 90C]
+depth=10   shm=shm cloud        n=272 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=148.6 p99=162.9 | cols_present<99.5%: 194/272 (min 0.891)
+    [pkg temp 57C -> 71C]
+depth=32   shm=shm cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=147.0 p99=163.7 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 56C -> 66C]
+depth=512  shm=shm cloud        n=268 (8.9 Hz) | stamp gaps: <50ms=0, 50-150ms=267, >=150ms=0 | latency ms p50=149.2 p99=164.9 | cols_present<99.5%: 0/268 (min 1.000)
+    [pkg temp 58C -> 71C]

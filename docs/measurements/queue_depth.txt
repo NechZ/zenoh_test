@@ -1,0 +1,17 @@
+depth=10   shm=net cloud        n=272 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=144.7 p99=161.7 | cols_present<99.5%: 224/272 (min 0.875)
+    [pkg temp 63C -> 74C]
+depth=512  shm=net cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=160.8 p99=179.0 | cols_present<99.5%: 0/270 (min 1.000)
+    [pkg temp 56C -> 72C]
+/workspaces/zenoh_test/benchmarks/pipeline/run_flicker.sh: line 27:  2805 Segmentation fault      (core dumped) python3 "$ROOT/benchmarks/pipeline/probe_ros.py" 30 cloud > /tmp/fl_p1.txt 2>&1
+depth=512  shm=net cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=160.4 p99=177.6 | cols_present<99.5%: 0/270 (min 1.000)
+    [pkg temp 56C -> 73C]
+depth=10   shm=net cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=147.7 p99=163.7 | cols_present<99.5%: 223/271 (min 0.859)
+    [pkg temp 56C -> 72C]
+depth=10   shm=shm cloud        n=272 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=271, >=150ms=0 | latency ms p50=147.7 p99=164.0 | cols_present<99.5%: 204/272 (min 0.836)
+    [pkg temp 57C -> 72C]
+depth=512  shm=shm cloud        n=271 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=270, >=150ms=0 | latency ms p50=146.3 p99=156.8 | cols_present<99.5%: 0/271 (min 1.000)
+    [pkg temp 56C -> 66C]
+depth=512  shm=shm cloud        n=270 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=269, >=150ms=0 | latency ms p50=146.9 p99=165.8 | cols_present<99.5%: 0/270 (min 1.000)
+    [pkg temp 56C -> 68C]
+depth=10   shm=shm cloud        n=268 (8.9 Hz) | stamp gaps: <50ms=0, 50-150ms=267, >=150ms=0 | latency ms p50=146.9 p99=162.1 | cols_present<99.5%: 194/268 (min 0.875)
+    [pkg temp 57C -> 72C]

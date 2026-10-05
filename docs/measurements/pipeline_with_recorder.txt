@@ -1,0 +1,40 @@
+=== ROS 2 rmw_zenoh, SHM off, recorder true: ouster_ros + pylon + consumer node in one container
+pipeline process (all nodes + recorder if enabled):
+  pid 1112: 1.25 cores of CPU, RSS 375 MB
+CONSUMER cam0         n=250 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=249, >=150ms=0 | latency ms p50=16.0 p99=41.1
+CONSUMER cam1         n=250 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=249, >=150ms=0 | latency ms p50=17.6 p99=39.5
+CONSUMER cloud        n=225 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=224, >=150ms=0 | latency ms p50=160.4 p99=172.9 | cols_present<99.5%: 0/225 (min 1.000)
+  [pkg temp 62C -> 72C]
+=== ROS 2 rmw_zenoh, SHM on, recorder true: ouster_ros + pylon + consumer node in one container
+pipeline process (all nodes + recorder if enabled):
+  pid 1336: 1.08 cores of CPU, RSS 1341 MB
+CONSUMER cam0         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=14.4 p99=38.1
+CONSUMER cam1         n=249 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=248, >=150ms=0 | latency ms p50=16.1 p99=38.3
+CONSUMER cloud        n=226 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=225, >=150ms=0 | latency ms p50=145.7 p99=158.4 | cols_present<99.5%: 0/226 (min 1.000)
+  [pkg temp 57C -> 71C]
+=== Pure Zenoh, SHM off: Ouster SDK + Pylon SDK in one process, recorder + 2 consumers separate
+pipeline process (Ouster + Pylon + publishing):
+  pid 1545: 0.68 cores of CPU, RSS 194 MB
+recorder process (zstd file compression):
+  pid 1552: 0.67 cores of CPU, RSS 112 MB
+PIPELINE[shm=0] 40.0s: cloud scans=348 (8.7 Hz) packets=45814 ring_drops=1269 shm_alloc_fail=0 cam0=395 (9.9 Hz) cam1=398 (9.9 Hz) | process CPU=62% of one core
+STAGE cloud build+publish (all returns, per scan): median 31.42 ms, p95 52.73 ms, max 5016.23 ms
+CONSUMER bench/cam0   n=374 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=373, >=150ms=0 | latency ms p50=4.3 p99=28.4
+CONSUMER bench/cam1   n=376 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=375, >=150ms=0 | latency ms p50=4.3 p99=29.4
+CONSUMER bench/cloud  n=338 (8.9 Hz) | stamp gaps: <50ms=0, 50-150ms=337, >=150ms=0 | latency ms p50=128.3 p99=146.6 | cols_present<99.5%: 0/338 (min 1.000)
+CONSUMER process CPU=16% of one core
+  CONSUMER process CPU=49% of one core | recorder wrote 5.82 GB, dropped 0 msgs
+  [pkg temp 56C -> 72C]
+=== Pure Zenoh, SHM on: Ouster SDK + Pylon SDK in one process, recorder + 2 consumers separate
+pipeline process (Ouster + Pylon + publishing):
+  pid 1686: 0.19 cores of CPU, RSS 684 MB
+recorder process (zstd file compression):
+  pid 1695: 0.52 cores of CPU, RSS 580 MB
+PIPELINE[shm=1] 40.0s: cloud scans=359 (9.0 Hz) packets=46064 ring_drops=0 shm_alloc_fail=0 cam0=395 (9.9 Hz) cam1=398 (9.9 Hz) | process CPU=20% of one core
+STAGE cloud build+publish (all returns, per scan): median 3.67 ms, p95 4.24 ms, max 7.25 ms
+CONSUMER bench/cam0   n=372 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=371, >=150ms=0 | latency ms p50=0.6 p99=1.2
+CONSUMER bench/cam1   n=375 (10.0 Hz) | stamp gaps: <50ms=0, 50-150ms=374, >=150ms=0 | latency ms p50=0.6 p99=1.1
+CONSUMER bench/cloud  n=340 (9.0 Hz) | stamp gaps: <50ms=0, 50-150ms=339, >=150ms=0 | latency ms p50=111.5 p99=121.8 | cols_present<99.5%: 0/340 (min 1.000)
+CONSUMER process CPU=2% of one core
+  CONSUMER process CPU=38% of one core | recorder wrote 5.83 GB, dropped 0 msgs
+  [pkg temp 56C -> 68C]
