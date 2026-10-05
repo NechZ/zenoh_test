@@ -1,0 +1,42 @@
+# Services:
+#   ros2      build + benchmark container (repo mounted at /workspaces/zenoh_test)
+#   zenoh     rmw_zenoh router, needed by every ROS 2 benchmark
+#   foxglove  optional viewer bridge:  docker compose --profile viewer up -d foxglove
+#
+# host network + host IPC are required for Zenoh shared memory between processes/containers.
+x-common: &common
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: zenoh-sensor-bench:latest
+  network_mode: host
+  ipc: host
+  ulimits:
+    memlock: -1
+
+services:
+  ros2:
+    <<: *common
+    container_name: zenoh_test
+    volumes:
+      - .:/workspaces/zenoh_test
+    working_dir: /workspaces/zenoh_test
+    environment:
+      - PYLON_CAMEMU=2
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  zenoh:
+    <<: *common
+    command: ros2 run rmw_zenoh_cpp rmw_zenohd
+    restart: unless-stopped
+
+  foxglove:
+    <<: *common
+    profiles: ["viewer"]
+    # send_buffer_limit must exceed the largest message (a 12 MB point cloud); the default is 10 MB
+    command: >
+      ros2 run foxglove_bridge foxglove_bridge
+      --ros-args -p port:=8765 -p send_buffer_limit:=100000000
+    restart: unless-stopped

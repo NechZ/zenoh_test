@@ -1,0 +1,110 @@
+diff --git a/pylon_ros2_camera_component/src/pylon_ros2_camera.cpp b/pylon_ros2_camera_component/src/pylon_ros2_camera.cpp
+index 6637032..2aaca7f 100644
+--- a/pylon_ros2_camera_component/src/pylon_ros2_camera.cpp
++++ b/pylon_ros2_camera_component/src/pylon_ros2_camera.cpp
+@@ -69,7 +69,7 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+     {
+         device_class = device_info.GetDeviceClass();
+         
+-        if (device_class == "BaslerGigE")
++        if (device_class == "BaslerGigE" or device_class == "BaslerCamEmu")
+         {
+             if (device_info.IsModelNameAvailable())
+             {
+@@ -89,7 +89,7 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+                         << "but it is neither a ace, nor a ace2 camera device. "
+                         << "Other camera types are not supported by this driver for now!");
+ 
+-                    return UNKNOWN;
++                    return GIGE;
+                 }
+             }
+         }
+@@ -117,7 +117,7 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+                         << "but it is neither a Dart, nor a USB camera device. "
+                         << "Other camera types are not supported by this driver for now!");
+                     
+-                    return UNKNOWN;
++                    return GIGE;
+                 }
+             }
+             else
+@@ -125,7 +125,7 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+                 RCLCPP_ERROR_STREAM(LOGGER, "Error while detecting the pylon camera type from its Model Name. "
+                     << "The connected camera has no Model Name available!");
+                 
+-                return UNKNOWN;
++                return GIGE;
+             }
+         }
+         else if (device_class == "BaslerGTC/Basler/GenTL_Producer_for_Basler_blaze_101_cameras")
+@@ -143,7 +143,7 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+             RCLCPP_ERROR_STREAM(LOGGER, "The detected camera type is: " << device_class << ". "
+                 << "Only 'BaslerUsb' and 'BaslerGigE' types are supported by this driver for now!");
+ 
+-            return UNKNOWN;
++            return GIGE;
+         }
+     }
+     else
+@@ -151,10 +151,10 @@ PYLON_CAM_TYPE detectPylonCamType(const Pylon::CDeviceInfo& device_info)
+         RCLCPP_ERROR_STREAM(LOGGER, "Error while detecting the pylon camera type from "
+                 << "its DeviceClass: Camera has no DeviceClass available!");
+ 
+-        return UNKNOWN;
++        return GIGE;
+     }
+ 
+-    return UNKNOWN;
++    return GIGE;
+ }
+ 
+ std::unique_ptr<PylonROS2Camera> createFromDevice(PYLON_CAM_TYPE cam_type, Pylon::IPylonDevice* device)
+@@ -226,7 +226,9 @@ std::unique_ptr<PylonROS2Camera> PylonROS2Camera::create(const std::string& devi
+             for ( it = device_list.begin(); it != device_list.end(); ++it )
+             {
+                 std::string device_user_id_found(it->GetUserDefinedName());
+-                if ( (0 == device_user_id_to_open.compare(device_user_id_found)) ||
++                // also allow selecting by serial number (e.g. emulated cameras have no user id)
++                if ( (0 == device_user_id_to_open.compare(std::string(it->GetSerialNumber()))) ||
++                     (0 == device_user_id_to_open.compare(device_user_id_found)) ||
+                      (device_user_id_to_open.length() < device_user_id_found.length() &&
+                      (0 == device_user_id_found.compare(device_user_id_found.length() -
+                                                          device_user_id_to_open.length(),
+diff --git a/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp b/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp
+index 6b9d7fa..4ce2c8c 100644
+--- a/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp
++++ b/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp
+@@ -794,6 +794,32 @@ bool PylonROS2CameraNode::startGrabbing()
+         std::bind(&PylonROS2CameraNode::handleGrabBlazeDataActionGoalAccepted, this, _1));
+   }
+ 
++  if (!this->pylon_camera_->isBlaze())
++  {
++    if (!this->has_parameter("startup_image_width"))
++    {
++      this->declare_parameter<int>("startup_image_width", 0);
++    }
++    if (!this->has_parameter("startup_image_height"))
++    {
++      this->declare_parameter<int>("startup_image_height", 0);
++    }
++    const int startup_width = this->get_parameter("startup_image_width").as_int();
++    const int startup_height = this->get_parameter("startup_image_height").as_int();
++    if (startup_width > 0 && startup_height > 0)
++    {
++      sensor_msgs::msg::RegionOfInterest target_roi;
++      target_roi.x_offset = 0;
++      target_roi.y_offset = 0;
++      target_roi.width = startup_width;
++      target_roi.height = startup_height;
++      sensor_msgs::msg::RegionOfInterest reached_roi;
++      this->setROI(target_roi, reached_roi);
++      RCLCPP_INFO_STREAM(LOGGER, "Startup ROI requested: " << startup_width << "x" << startup_height
++              << ", reached: " << reached_roi.width << "x" << reached_roi.height);
++    }
++  }
++
+   if (!this->pylon_camera_->isBlaze() && this->pylon_camera_parameter_set_.binning_x_given_)
+   {   
+     std::size_t reached_binning_x;

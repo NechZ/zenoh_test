@@ -1,0 +1,16 @@
+# The image only needs docker/ and third_party/pylon/. Everything else is mounted at runtime.
+.git
+.claude
+.devcontainer
+data
+build
+install
+log
+logs
+bags
+src
+benchmarks
+docs
+patches
+scripts
+*.md
