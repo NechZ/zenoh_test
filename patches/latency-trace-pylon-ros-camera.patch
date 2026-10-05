@@ -1,0 +1,86 @@
+--- a/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp
++++ b/pylon_ros2_camera_component/src/pylon_ros2_camera_node.cpp
+@@ -33,6 +33,7 @@
+ //#include <functional>
+ 
+ #include "pylon_ros2_camera_node.hpp"
++#include "latency_trace.h"
+ 
+ 
+ namespace pylon_ros2_camera
+@@ -1041,8 +1042,15 @@
+         // publish via standard publishers with zero-copy move
+         auto msg = std::make_unique<sensor_msgs::msg::Image>(this->img_raw_msg_);
+         msg->data = std::move(this->img_raw_msg_.data);
++        const int64_t tr_stamp = rclcpp::Time(msg->header.stamp).nanoseconds();
+         this->img_raw_pub_->publish(std::move(msg));
+         this->cam_info_pub_->publish(cam_info);
++        if (bench_trace::enabled()) {
++          const auto& c = bench_trace::cam();
++          std::fprintf(stderr, "TRACE cam name=%s stamp=%lld retrieved=%lld copied=%lld published=%lld\n",
++                       this->get_name(), (long long)tr_stamp, (long long)c.retrieved, (long long)c.copied,
++                       (long long)bench_trace::now_ns());
++        }
+       }
+     }
+     else
+--- a/pylon_ros2_camera_component/include/internal/impl/pylon_ros2_camera_base.hpp
++++ b/pylon_ros2_camera_component/include/internal/impl/pylon_ros2_camera_base.hpp
+@@ -36,6 +36,7 @@
+ 
+ #include "internal/pylon_ros2_camera_impl.hpp"
+ #include "encoding_conversions.hpp"
++#include "latency_trace.h"
+ 
+ #include <pylon/StringParameter.h>
+ #include <pylon/BaslerUniversalInstantCamera.h>
+@@ -428,6 +429,7 @@
+         return false;
+     }
+     
++    if (bench_trace::enabled()) bench_trace::cam().retrieved = bench_trace::now_ns();  // frame is available
+     const uint8_t *pImageBuffer = reinterpret_cast<uint8_t*>(ptr_grab_result->GetBuffer());
+ 
+     // ------------------------------------------------------------------------
+@@ -450,6 +452,7 @@
+     {
+         image.assign(pImageBuffer, pImageBuffer + img_size_byte_);
+     }
++    if (bench_trace::enabled()) bench_trace::cam().copied = bench_trace::now_ns();  // pixels copied into the message
+ 
+     bool use_chunk_timestamp = false;
+     if (this->getChunkModeActive() == 1)
+--- /dev/null
++++ b/pylon_ros2_camera_component/include/latency_trace.h
+@@ -0,0 +1,31 @@
++// Optional stage timestamps for latency analysis. Enabled with the environment variable BENCH_TRACE=1.
++// Lines are printed to stderr as "TRACE cam ..."; see benchmarks/pipeline/latency_trace.py.
++#pragma once
++#include <chrono>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++
++namespace bench_trace {
++
++inline bool enabled() {
++  static const bool e = std::getenv("BENCH_TRACE") != nullptr;
++  return e;
++}
++
++inline int64_t now_ns() {
++  return std::chrono::duration_cast<std::chrono::nanoseconds>(
++             std::chrono::system_clock::now().time_since_epoch())
++      .count();
++}
++
++// Stage times of the frame the calling camera thread is working on (one camera thread per node).
++struct CamCur {
++  int64_t retrieved = 0, copied = 0;
++};
++inline CamCur& cam() {
++  static thread_local CamCur c;
++  return c;
++}
++
++}  // namespace bench_trace

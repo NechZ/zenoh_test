@@ -7,6 +7,7 @@
 //   Zenoh:       cloud / images are built straight into a SHM buffer (shm=1) or a heap vector (shm=0)
 //
 // Usage: zenoh_sensors --pcap F --meta F [--shm 0|1] [--cams N] [--fps 10] [--secs S] [--warmup W] [--port P]
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -44,6 +45,7 @@ namespace {
 std::atomic<bool> g_stop{false};
 std::atomic<uint64_t> g_packets{0}, g_scans{0}, g_ring_drops{0}, g_clouds{0}, g_shm_fail{0};
 std::vector<std::atomic<uint64_t>> g_frames(8);
+std::vector<double> g_process_ms;  // per scan: dequeue -> all returns built and published (worker thread only)
 
 std::string read_text(const std::string& path) {
   std::ifstream f(path);
@@ -189,7 +191,9 @@ class OusterPipeline {
           continue;
         }
       }
+      const int64_t t_deq = now_ns();
       process(*scans_[read_], stamps_[read_]);
+      g_process_ms.push_back((now_ns() - t_deq) / 1e6);
       read_ = (read_ + 1) % ring_size_;
       std::lock_guard<std::mutex> g(m_);
       count_--;
@@ -260,8 +264,11 @@ class OusterPipeline {
 // ---------------------------------------------------------------------------------------------
 // Pylon: one grab thread per emulated camera
 // ---------------------------------------------------------------------------------------------
+std::mutex g_pylon_init;  // device enumeration/opening is not safe to run from two threads at once
+
 void camera_thread(int idx, double fps, Out* out) {
   try {
+    std::unique_lock<std::mutex> init_lock(g_pylon_init);
     Pylon::CTlFactory& f = Pylon::CTlFactory::GetInstance();
     Pylon::DeviceInfoList_t devs;
     if (f.EnumerateDevices(devs) <= static_cast<size_t>(idx)) {
@@ -275,6 +282,7 @@ void camera_thread(int idx, double fps, Out* out) {
     cam.AcquisitionFrameRateEnable.TrySetValue(true);
     cam.AcquisitionFrameRate.TrySetValue(fps);
     cam.StartGrabbing(Pylon::GrabStrategy_OneByOne);
+    init_lock.unlock();  // from here on the cameras run independently
     Pylon::CGrabResultPtr res;
     uint32_t seq = 0;
     while (!g_stop && cam.IsGrabbing()) {
@@ -362,6 +370,12 @@ int main(int argc, char** argv) {
               (unsigned long long)g_shm_fail.load());
   for (int i = 0; i < cams; ++i) std::printf(" cam%d=%llu (%.1f Hz)", i, (unsigned long long)g_frames[i].load(), g_frames[i].load() / el);
   std::printf(" | process CPU=%.0f%% of one core\n", 100 * cpu / el);
+  if (!g_process_ms.empty()) {  // worker thread has been joined: safe to read
+    auto v = g_process_ms;
+    std::sort(v.begin(), v.end());
+    std::printf("STAGE cloud build+publish (all returns, per scan): median %.2f ms, p95 %.2f ms, max %.2f ms\n",
+                v[v.size() / 2], v[static_cast<size_t>(v.size() * 0.95)], v.back());
+  }
   std::this_thread::sleep_for(std::chrono::seconds(2));  // let consumers drain
   return 0;
 }

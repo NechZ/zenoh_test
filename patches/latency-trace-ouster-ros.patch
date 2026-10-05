@@ -1,0 +1,143 @@
+--- a/ouster-ros/src/lidar_packet_handler.h
++++ b/ouster-ros/src/lidar_packet_handler.h
+@@ -17,6 +17,7 @@
+ #include <pcl_conversions/pcl_conversions.h>
+ 
+ #include "lock_free_ring_buffer.h"
++#include "latency_trace.h"
+ #include <optional>
+ #include <thread>
+ #include <chrono>
+@@ -130,8 +131,18 @@
+                     std::unique_lock<std::mutex> lock(
+                         *(mutexes[ring_buffer.write_head()]));
+                     auto& lidar_scan = *lidar_scans[ring_buffer.write_head()];
++                    if (bench_trace::enabled() && !tr_started_) {
++                        tr_first_cur_ = bench_trace::now_ns();  // first packet of this scan reached the cloud node
++                        tr_started_ = true;
++                    }
+                     result = lidar_handler(*this, pf, lidar_packet, lidar_scan);
+                     if (result) {
++                        if (bench_trace::enabled()) {
++                            const auto w = ring_buffer.write_head();
++                            tr_first_[w] = tr_first_cur_;
++                            tr_complete_[w] = bench_trace::now_ns();
++                            tr_first_cur_ = tr_complete_[w];  // the completing packet starts the next scan
++                        }
+                         // count the number of valid columns in the scan
+                         auto status = lidar_scan.status();
+                         size_t valid_cols = std::count_if(status.data(), status.data() + status.size(),
+@@ -199,10 +210,26 @@
+ 
+         std::unique_lock<std::mutex> lock(*mutexes[ring_buffer.read_head()]);
+ 
++        if (bench_trace::enabled()) {
++            auto& c = bench_trace::cur();
++            const auto r = ring_buffer.read_head();
++            c.first_pkt = tr_first_[r];
++            c.complete = tr_complete_[r];
++            c.dequeue = bench_trace::now_ns();
++            c.built = c.published = 0;
++        }
+         for (auto h : lidar_scan_handlers) {
+             h(*lidar_scans[ring_buffer.read_head()], lidar_scan_estimated_ts,
+               lidar_scan_estimated_msg_ts);
+         }
++        if (bench_trace::enabled()) {
++            const auto& c = bench_trace::cur();
++            std::fprintf(stderr,
++                         "TRACE ouster stamp=%lld first_pkt=%lld complete=%lld dequeue=%lld built=%lld published=%lld handlers_done=%lld\n",
++                         (long long)lidar_scan_estimated_msg_ts.nanoseconds(), (long long)c.first_pkt,
++                         (long long)c.complete, (long long)c.dequeue, (long long)c.built, (long long)c.published,
++                         (long long)bench_trace::now_ns());
++        }
+ 
+         // when we hit percent amount of the ring_buffer capacity throttle
+         size_t read_step = 1;
+@@ -355,6 +382,10 @@
+    private:
+     std::unique_ptr<ouster::sdk::core::ScanBatcher> scan_batcher;
+     const int LIDAR_SCAN_COUNT = 10;
++    // latency tracing (BENCH_TRACE): per ring slot, first-packet and scan-complete time
++    int64_t tr_first_cur_ = 0;
++    bool tr_started_ = false;
++    int64_t tr_first_[16]{}, tr_complete_[16]{};
+     const float THROTTLE_PERCENT = 0.7f;
+     LockFreeRingBuffer ring_buffer;
+     std::mutex ring_buffer_mutex;
+--- a/ouster-ros/src/os_cloud_node.cpp
++++ b/ouster-ros/src/os_cloud_node.cpp
+@@ -10,6 +10,7 @@
+ // header file needs to be the first include due to PCL_NO_PRECOMPILE flag
+ // clang-format off
+ #include "ouster_ros/os_ros.h"
++#include "latency_trace.h"
+ // clang-format on
+ 
+ #include <sensor_msgs/msg/imu.hpp>
+@@ -190,8 +191,10 @@
+                     tf_bcast.apply_lidar_to_sensor_transform(),
+                     organized, destagger, min_range, max_range, v_reduction, mask_path,
+                     [this](PointCloudProcessor_OutputType msgs) {
++                        if (bench_trace::enabled()) bench_trace::cur().built = bench_trace::now_ns();
+                         for (size_t i = 0; i < std::min(msgs.size(), lidar_pubs.size()); ++i)
+                             lidar_pubs[i]->publish(std::move(msgs[i]));
++                        if (bench_trace::enabled()) bench_trace::cur().published = bench_trace::now_ns();
+                     }
+                 )
+             );
+--- a/ouster-ros/src/os_pcap_node.cpp
++++ b/ouster-ros/src/os_pcap_node.cpp
+@@ -11,6 +11,7 @@
+ // header file needs to be the first include due to PCL_NO_PRECOMPILE flag
+ // clang-format off
+ #include "ouster_ros/os_ros.h"
++#include "latency_trace.h"
+ // clang-format on
+ 
+ #include <string>
+@@ -273,6 +274,10 @@
+             } else if (packet_info.dst_port == info.config.udp_port_lidar) {
+                 std::memcpy(lidar_packet.buf.data(), pcap.current_data(),
+                             pf.lidar_packet_size);
++                if (bench_trace::enabled() &&
++                    pf.col_measurement_id(pf.nth_col(0, lidar_packet.buf.data())) == 0) {
++                    std::fprintf(stderr, "TRACE pcap first_pkt_pub=%lld\n", (long long)bench_trace::now_ns());
++                }
+                 lidar_packet_pub->publish(lidar_packet);
+             } else {
+                 RCLCPP_WARN_STREAM_THROTTLE(get_logger(), *get_clock(), 1,
+--- /dev/null
++++ b/ouster-ros/src/latency_trace.h
+@@ -0,0 +1,31 @@
++// Optional stage timestamps for latency analysis. Enabled with the environment variable BENCH_TRACE=1.
++// Lines are printed to stderr as "TRACE <what> key=value ..."; see benchmarks/pipeline/latency_trace.py.
++#pragma once
++#include <chrono>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++
++namespace bench_trace {
++
++inline bool enabled() {
++    static const bool e = std::getenv("BENCH_TRACE") != nullptr;
++    return e;
++}
++
++inline int64_t now_ns() {
++    return std::chrono::duration_cast<std::chrono::nanoseconds>(
++               std::chrono::system_clock::now().time_since_epoch())
++        .count();
++}
++
++// Stage times of the scan currently being processed. Written by the scan-processing thread only.
++struct Cur {
++    int64_t first_pkt = 0, complete = 0, dequeue = 0, built = 0, published = 0;
++};
++inline Cur& cur() {
++    static Cur c;
++    return c;
++}
++
++}  // namespace bench_trace

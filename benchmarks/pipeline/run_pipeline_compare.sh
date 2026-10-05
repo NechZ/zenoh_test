@@ -76,7 +76,7 @@ run_pure() {  # $1 = net|shm
   echo "pipeline process (Ouster + Pylon + publishing):"; sample_end $SP
   echo "recorder process (zstd file compression):"; sample_end $RP
   wait $SP; sleep 5
-  grep -h "^PIPELINE" /tmp/cmp_sensors.txt
+  grep -h "^PIPELINE\|^STAGE\|\[cam" /tmp/cmp_sensors.txt
   grep -h "^CONSUMER" /tmp/cmp_c1.txt | grep -v "cloud2"
   grep -h "recorder wrote" /tmp/cmp_rec.txt | sed 's/^/  /'
   pkill -f "zconsumer"; sleep 1

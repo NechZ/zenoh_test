@@ -9,6 +9,7 @@ All commands run **inside the `ros2` container** from the repo root, after `scri
 | 2 | Same for ROS 2 (`rmw_zenoh`) | `benchmarks/micro/run_ros_rmw.sh` | ~2 min |
 | 3 | Whole sensor pipeline: ROS drivers vs a pure-Zenoh app on the same SDKs | `benchmarks/pipeline/run_pipeline_compare.sh` | ~12 min |
 | 4 | Does the LiDAR flicker (dropped packets) happen, and does queue depth fix it? | see [below](#4-reproduce-the-flicker-and-the-queue-depth-fix) | ~2 min per run |
+| 5 | Where do the milliseconds go (stage-by-stage latency of the ROS pipeline)? | see [below](#5-latency-breakdown-stage-trace) | ~2 min per run |
 
 Findings and the reasoning behind them: [../docs/transport-ipc-report.md](../docs/transport-ipc-report.md).
 
@@ -68,8 +69,12 @@ Reference result on one laptop (single runs, see the report for caveats):
 |---|---|---|---|---|
 | Pipeline CPU without recorder (cores) | 0.60 | 0.44 | 0.62 | 0.21 |
 | Total with recorder (cores) | 1.30 | 1.06 | 1.35 | 0.77 |
-| Cloud latency p50 (from scan start) | 257 ms | 244 ms | 127 ms | 113 ms |
-| Camera latency p50 | 16-18 ms | 14-16 ms | 4-5 ms | 0.6 ms |
+| Scan complete → cloud published (ms) | 31 | 22 | 30.5 | 3.6 |
+
+**Do not compare the printed ROS `latency` columns with the pure-Zenoh ones.** The ROS driver stamps clouds about
+one scan period (99 ms) early and cameras ~12 ms early (taken before the blocking grab), so the probe reports
+~250 ms (cloud) and ~15 ms (camera) for ROS against ~113 ms and ~0.6 ms for the pure app. Use benchmark 5 for a
+real stage breakdown. The pure app prints the stage time as `STAGE cloud build+publish`.
 
 ## 4. Reproduce the flicker and the queue-depth fix
 
@@ -90,13 +95,40 @@ stamp gaps under 50 ms or over 150 ms; with 512 expect `0/N` and all gaps in 50-
 at depth 10). Stop the launch with Ctrl-C so the recorder writes its metadata; bags go to `bags/` (ignored by git,
 about 2.4 GB per minute compressed, delete them afterwards).
 
+## 5. Latency breakdown (stage trace)
+
+Needs the instrumented drivers, which `scripts/setup_sources.sh` applies (`patches/latency-trace-*.patch`; the
+trace is off unless `BENCH_TRACE=1`). Start the ROS pipeline with tracing and keep its output:
+
+```bash
+BENCH_TRACE=1 ros2 launch sensor_benchmark benchmark_drivers.launch.py record:=false 2>&1 | tee /tmp/trace.log
+# after ~40 s, stop with Ctrl-C and analyse:
+benchmarks/pipeline/latency_trace.py /tmp/trace.log
+```
+
+For the loaded case use `record:=true` and start two `probe_ros.py 30 cloud` readers (see 4), optionally after
+`source scripts/zenoh_env.sh shm`. The script prints median / p95 / max per stage:
+
+- **Cloud**: `stamp_offset` (message stamp vs the real first packet; expect ~99 ms early), `assembly` (the sensor
+  sweep, ~110 ms), `queue`, `process` (building the clouds), `publish`, `consume`, and the totals
+  `since_stamp` (what the probes report), `since_first_pkt`, `since_complete` (what a consumer waits after the scan
+  is done).
+- **Camera** (per camera): `wait` (stamp before the blocking grab → frame retrieved), `copy`, `rest`, `consume`.
+- The `hop` row (pcap node → cloud node) is **not reliable**: the cloud node's first-packet time sits one packet
+  (0.8 ms) before the pcap node's, so the join matches the previous scan. Ignore it.
+- `consume` is negative under load because the in-process consumer receives the message during `publish()`.
+
+For the pure-Zenoh side the matching number is the `STAGE` line printed by `run_pipeline_compare.sh pure_net
+pure_shm` (dequeue → both returns built and published).
+
 ## How the numbers are measured
 
 - **Completeness**: share of scan columns that contain at least one finite point. A lost LiDAR packet removes
   16 columns.
 - **Stamp gaps**: time between consecutive header stamps. A 9 Hz LiDAR should give ~110 ms every time.
-- **Latency**: time the consumer's callback starts minus the message's stamp (same host clock). For clouds the
-  stamp is the (estimated) start of the scan, so ~110 ms of it is the sensor sweeping one revolution.
+- **Latency (probes)**: time the consumer's callback starts minus the message's stamp (same host clock). For the
+  pure app the stamp is the first packet of the scan (~110 ms of the latency is the sensor sweep) or the grab time
+  of the image. ROS stamps differ (see the warning in 3), so ROS and pure-Zenoh probe latencies are not comparable.
 - **CPU / RSS**: `utime+stime` and `VmRSS` of the process, sampled from `/proc` over the window.
 
 ## Fairness notes and limits
